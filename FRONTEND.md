@@ -27,6 +27,14 @@ Keep components and the assistant runtime independent of HTTP details. The
 runtime adapter in `src/chat/` should map assistant-ui state to the documented
 entity API contract.
 
+The research page loads saved conversations from `GET /chat/ids`, labels them
+sequentially as `Chat 1`, `Chat 2`, and so on, and loads a selected chat using
+its `session_id` and `previous_interaction_id`. A new conversation begins when
+a URL is scraped without an active session; its first message sends a `null`
+`previous_interaction_id`. The response's ID is retained for follow-up
+messages. Adding another URL from an open conversation sends that conversation's
+`session_id` to `/ingestion/scrape`.
+
 ## Endpoints
 
 ### `GET /`

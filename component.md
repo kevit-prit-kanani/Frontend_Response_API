@@ -18,12 +18,12 @@
 - `components.json`: shadcn preset, Base UI choice, CSS path and aliases.
 
 ## Architecture
-`Thread UI → AssistantRuntimeProvider → useLocalRuntime(ChatModelAdapter) → entity API module → shared Axios client → own backend`
+`Research UI → entity API module → shared Axios client → own backend`
 
 Keep backend-specific logic in `src/entities/<entity>/api.ts` and shared HTTP configuration in `src/lib/api-client.ts`, not in presentation components. Define an API schema owned by this project and map between it and assistant-ui's message format in the adapter. Never couple the backend to the library's internal message shape unnecessarily.
 
 ## Runtime pattern
-`ChatRuntimeProvider` should create a `ChatModelAdapter`, pass it to `useLocalRuntime(adapter)`, and wrap children with `AssistantRuntimeProvider`. The adapter's `run({ messages, abortSignal })` maps assistant-ui messages plus the active session/conversation IDs to the backend's `POST /chat` contract, then returns assistant content, e.g. `{ content: [{ type: "text", text: reply }] }`. Keep that mapping in `src/chat/`; use the entity API module for HTTP calls. `VITE_*` values are public browser config; never store secrets there. Axios errors should remain visible to the caller, and cancellation should be wired through when the adapter is connected.
+The current research UI manages session/conversation IDs and message history in the page, calling the entity API functions directly. A conversation starts after a successful scrape; its first `POST /chat` sends `previous_interaction_id: null`, and subsequent messages use the ID returned by the backend. Selecting a saved conversation loads its turns from `GET /chat/conversation`. If the assistant-ui thread is adopted later, `ChatRuntimeProvider` should map its message state and active IDs to the existing entity API contract rather than calling the backend from UI components. `VITE_*` values are public browser config; never store secrets there. Axios errors should remain visible to the caller, and cancellation should be wired through when needed.
 
 For streaming, parse the backend's actual protocol (SSE, NDJSON, etc.) in an async-generator adapter. Yield the full accumulated text, not only the latest chunk. This backend currently returns complete, non-streaming responses. UI components alone do not provide backend streaming, persistence, file uploads, tool execution, or durable conversation history.
 
